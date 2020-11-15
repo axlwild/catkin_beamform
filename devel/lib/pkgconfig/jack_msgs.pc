@@ -1,0 +1,8 @@
+prefix=/home/axl/catkin_ws/devel
+
+Name: jack_msgs
+Description: Description of jack_msgs
+Version: 1.0.0
+Cflags: -I/home/axl/catkin_ws/devel/include
+Libs: -L${prefix}/lib 
+Requires: message_runtime

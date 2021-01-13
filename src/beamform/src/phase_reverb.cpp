@@ -15,6 +15,9 @@
 bool READY = false;
 
 std::complex<double> *x_fft, *x_time, *y_fft, *y_time;
+// Vectors with the inverse 
+std::complex<double> *x_fft_delayed = nullptr, *y_fft_delayed = nullptr;
+std::complex<double> *x_fft_bin = nullptr, *y_fft_bin = nullptr;
 fftw_plan x_forward, y_inverse;
 
 double *freqs;
@@ -85,7 +88,7 @@ void apply_weights (jack_ringbuffer_t **in, rosjack_data *out){
     }
     
     y_fft[0] = in_fft(0,0);
-    
+    float rev_threshold = 0.8;
     for(j = 1; j < fft_win; j++){
         //creating new frequency data bin from mean magnitude
         mag_mean = 0;
@@ -98,28 +101,41 @@ void apply_weights (jack_ringbuffer_t **in, rosjack_data *out){
         pha_mean = arg(in_fft(0,j));
         
         if (mag_mean/fft_win > mag_threshold){
-          //applying weights to align phases
-          for(i = 0; i < number_of_microphones; i++){
-            phases_aligned[i] = arg(conj(weights(i,j))*in_fft(i,j));
-          }
-          
-          //getting the mean phase difference between all microphones
-          phase_diff_num = 0;
-          phase_diff_sum = get_overall_phase_diff(0,&phase_diff_num);
-          phase_diff_mean = phase_diff_sum/(double)phase_diff_num;
-          
-          pha_mean = arg(in_fft(0,j));
-          
-          
-          if (phase_diff_mean < min_phase_diff_mean){
-              y_fft[j] = std::complex<double>(mag_mean*cos(pha_mean),mag_mean*sin(pha_mean));
-          }else{
-              mag_mean *= mag_mult;
-              y_fft[j] = std::complex<double>(mag_mean*cos(pha_mean),mag_mean*sin(pha_mean));
-          }
+            //applying weights to align phases
+            for(i = 0; i < number_of_microphones; i++){
+                phases_aligned[i] = arg(conj(weights(i,j))*in_fft(i,j));
+            }
+            
+            //getting the mean phase difference between all microphones
+            phase_diff_num = 0;
+            phase_diff_sum = get_overall_phase_diff(0,&phase_diff_num);
+            phase_diff_mean = phase_diff_sum/(double)phase_diff_num;
+            
+            pha_mean = arg(in_fft(0,j));
+            
+            
+            //1. Debemos de tener una máscara binaria para aceptar ciertas frecuencias.
+            //2. Debemos de mantener la máscara actual para que no se escuche robótico.
+            //3. Debemos de calcular el tiempo al que equivale la ventana.
+            //4. Con el tiempo que equivale la ventana, y el tiempo de reverberación calculado, habría que discriminar en la
+            //    siguiente en la ventana que equivalga al tiempo de reverberación, las frecuencias que se repiten pero con menor amplitud.
+            //    El desfase de la ventana anterior estará en y_fft_delayed
+            //  4.1 Caso trev > tventana.
+            //  4.2 Caso trev < tventana.
+
+            // Aquí está el pan.
+            double mag_y         = std::abs(y_fft[j]) ;
+            double mag_y_delayed = std::abs(y_fft_delayed[j]);
+            if (phase_diff_mean < min_phase_diff_mean && (mag_y > (mag_y_delayed * rev_threshold) ) ){
+                y_fft[j] = std::complex<double>(mag_mean*cos(pha_mean),mag_mean*sin(pha_mean));
+            }else{
+                mag_mean *= mag_mult;
+                y_fft[j] = std::complex<double>(mag_mean*cos(pha_mean),mag_mean*sin(pha_mean));
+            }
+            memcpy(&y_fft_delayed, &y_fft, fft_win);
         }else{
-          mag_mean *= mag_mult;
-          y_fft[j] = std::complex<double>(mag_mean*cos(pha_mean),mag_mean*sin(pha_mean));
+            mag_mean *= mag_mult;
+            y_fft[j] = std::complex<double>(mag_mean*cos(pha_mean),mag_mean*sin(pha_mean));
         }
         
         //mag_mean *= 1 / (1+(15.0)*phase_diff_mean); // 15.0 here is a constant that is linked to the minimum phase difference
@@ -215,7 +231,14 @@ int main (int argc, char *argv[]) {
     x_time = (std::complex<double>*) fftw_malloc(sizeof(std::complex<double>) * fft_win);
     y_fft = (std::complex<double>*) fftw_malloc(sizeof(std::complex<double>) * fft_win);
     y_time = (std::complex<double>*) fftw_malloc(sizeof(std::complex<double>) * fft_win);
+    // recuerda que fft_win es el tamaño de la ventana * 2
+    x_fft_delayed = (std::complex<double>*) fftw_malloc(sizeof(std::complex<double>) * fft_win);
+    y_fft_delayed = (std::complex<double>*) fftw_malloc(sizeof(std::complex<double>) * fft_win);
+    // binary selection
+    x_fft_bin = (std::complex<double>*) fftw_malloc(sizeof(std::complex<double>) * fft_win);
+    y_fft_bin = (std::complex<double>*) fftw_malloc(sizeof(std::complex<double>) * fft_win);
     
+
     x_forward = fftw_plan_dft_1d(fft_win, reinterpret_cast<fftw_complex*>(x_time), reinterpret_cast<fftw_complex*>(x_fft), FFTW_FORWARD, FFTW_MEASURE);
     y_inverse = fftw_plan_dft_1d(fft_win, reinterpret_cast<fftw_complex*>(y_fft), reinterpret_cast<fftw_complex*>(y_time), FFTW_BACKWARD, FFTW_MEASURE);
     

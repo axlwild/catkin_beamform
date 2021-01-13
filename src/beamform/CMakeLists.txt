@@ -57,6 +57,7 @@ add_executable(rosjack_write src/jack_write.cpp)
 add_executable(rosjack_read src/jack_read.cpp)
 add_executable(rosjack_ref src/jack_ref.cpp)
 add_executable(phase src/phase.cpp)
+add_executable(phase_reverb src/phase_reverb.cpp)
 add_executable(phasempf src/phasempf.cpp)
 add_executable(gsc src/gsc.cpp)
 add_executable(lcmv src/lcmv.cpp)
@@ -100,6 +101,12 @@ target_link_libraries(rosjack_ref
 )
 
 target_link_libraries(phase
+  rosjack
+  ${FFTW_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(phase_reverb
   rosjack
   ${FFTW_LIBRARIES}
   ${catkin_LIBRARIES}

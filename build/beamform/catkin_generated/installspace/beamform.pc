@@ -1,8 +1,0 @@
-prefix=/home/axl/catkin_ws/install
-
-Name: beamform
-Description: Description of beamform
-Version: 0.0.0
-Cflags: -I${prefix}/include
-Libs: -L${prefix}/lib 
-Requires: roscpp rospy std_msgs jack_msgs message_runtime

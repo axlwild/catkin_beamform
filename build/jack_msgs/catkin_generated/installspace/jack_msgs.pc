@@ -1,8 +1,0 @@
-prefix=/home/axl/catkin_ws/install
-
-Name: jack_msgs
-Description: Description of jack_msgs
-Version: 1.0.0
-Cflags: -I${prefix}/include
-Libs: -L${prefix}/lib 
-Requires: message_runtime

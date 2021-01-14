@@ -1,0 +1,14 @@
+<launch>
+    <node name="beamform" pkg="beamform" type="phase_reverb" output="screen">
+        <rosparam command="load" file="$(find beamform)/rosjack_config.yaml" />
+        <rosparam command="load" file="$(find beamform)/beamform_config.yaml" />
+        <rosparam>
+        min_phase: 10.0
+        min_mag: 0.05
+        smooth_size: 5
+        rev_threshold : 0.8
+        delay_time : 5
+        mag_threshold : 0.01
+        </rosparam>
+    </node>
+</launch>

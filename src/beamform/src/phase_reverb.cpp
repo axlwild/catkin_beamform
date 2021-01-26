@@ -48,7 +48,7 @@ double *bin_phases_delayed;
 double *bin_phases_delayed_aux; 
 double *freqs;
 double *delays;
-int     idx_delay = 1;
+int     idx_delay = 0;
 Eigen::MatrixXcd weights;
 
 double mag_mult = 0.0001;
@@ -175,11 +175,12 @@ void apply_weights (jack_ringbuffer_t **in, rosjack_data *out){
         }
         if (idx_delay >= delay_window_size ){
             DELAY_BUFFER_READY = true; 
-            idx_delay = 1;
+            idx_delay = 0;
         }
+        idx_delay++;
         // means of phases delayed
-        bin_phases_delayed[idx_delay++] = freq_delayed;
-        y_fft_delayed[idx_delay++] = std::complex<double>(mag_mean*cos(pha_mean),mag_mean*sin(pha_mean));
+        bin_phases_delayed[idx_delay] = freq_delayed;
+        y_fft_delayed[idx_delay] = std::complex<double>(mag_mean*cos(pha_mean),mag_mean*sin(pha_mean));
         //mag_mean *= 1 / (1+(15.0)*phase_diff_mean); // 15.0 here is a constant that is linked to the minimum phase difference
         //y_fft[j] = std::complex<double>(mag_mean*cos(pha_mean),mag_mean*sin(pha_mean));
     }
